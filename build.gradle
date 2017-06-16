@@ -30,6 +30,7 @@ ext.versions = [
         mifosaccounting         : '0.1.0-BUILD-SNAPSHOT',
         mifosportfolio          : '0.1.0-BUILD-SNAPSHOT',
         mifosdeposit            : '0.1.0-BUILD-SNAPSHOT',
+        mifosteller             : '0.1.0-BUILD-SNAPSHOT',
         frameworkapi            : '0.1.0-BUILD-SNAPSHOT',
         frameworklang           : '0.1.0-BUILD-SNAPSHOT',
         frameworktest           : '0.1.0-BUILD-SNAPSHOT',
@@ -81,6 +82,7 @@ dependencies {
             [group: 'io.mifos.accounting', name: 'importer', version: versions.mifosaccounting],
             [group: 'io.mifos.portfolio', name: 'api', version: versions.mifosportfolio],
             [group: 'io.mifos.deposit-account-management', name: 'api', version: versions.mifosdeposit],
+            [group: 'io.mifos.teller', name: 'api', version: versions.mifosteller],
 
             [group: 'io.mifos.anubis', name: 'api', version: versions.frameworkanubis],
             [group: 'io.mifos.anubis', name: 'test', version: versions.frameworkanubis],

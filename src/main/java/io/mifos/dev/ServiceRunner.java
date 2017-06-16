@@ -51,6 +51,7 @@ import io.mifos.provisioner.api.v1.client.Provisioner;
 import io.mifos.provisioner.api.v1.domain.*;
 import io.mifos.rhythm.api.v1.client.RhythmManager;
 import io.mifos.rhythm.api.v1.events.BeatEvent;
+import io.mifos.teller.api.v1.client.TellerManager;
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper;
 import org.eclipse.aether.resolution.ArtifactResolutionException;
 import org.junit.*;
@@ -97,6 +98,7 @@ public class ServiceRunner {
   private static Microservice<LedgerManager> ledgerManager;
   private static Microservice<PortfolioManager> portfolioManager;
   private static Microservice<DepositAccountManager> depositAccountManager;
+  private static Microservice<TellerManager> tellerManager;
 
   private static DB embeddedMariaDb;
 
@@ -208,10 +210,14 @@ public class ServiceRunner {
 
     ServiceRunner.depositAccountManager = new Microservice<>(DepositAccountManager.class, "deposit-account-management", "0.1.0-BUILD-SNAPSHOT", ServiceRunner.INTEGRATION_TEST_ENVIRONMENT);
     startService(generalProperties, depositAccountManager);
+
+    ServiceRunner.tellerManager = new Microservice<>(TellerManager.class, "teller", "0.1.0-BUILD-SNAPSHOT", ServiceRunner.INTEGRATION_TEST_ENVIRONMENT);
+    startService(generalProperties, tellerManager);
   }
 
   @After
   public void tearDown() throws Exception {
+    ServiceRunner.tellerManager.kill();
     ServiceRunner.depositAccountManager.kill();
     ServiceRunner.rhythmManager.kill();
     ServiceRunner.portfolioManager.kill();
@@ -245,6 +251,7 @@ public class ServiceRunner {
     System.out.println("Accounting Service: " + ServiceRunner.ledgerManager.getProcessEnvironment().serverURI());
     System.out.println("Portfolio Service: " + ServiceRunner.portfolioManager.getProcessEnvironment().serverURI());
     System.out.println("Deposit Service: " + ServiceRunner.depositAccountManager.getProcessEnvironment().serverURI());
+    System.out.println("Teller Service: " + ServiceRunner.tellerManager.getProcessEnvironment().serverURI());
 
     boolean run = true;
 
@@ -303,16 +310,17 @@ public class ServiceRunner {
             ApplicationBuilder.create(ServiceRunner.customerManager.name(), ServiceRunner.customerManager.uri()),
             ApplicationBuilder.create(ServiceRunner.ledgerManager.name(), ServiceRunner.ledgerManager.uri()),
             ApplicationBuilder.create(ServiceRunner.portfolioManager.name(), ServiceRunner.portfolioManager.uri()),
-            ApplicationBuilder.create(ServiceRunner.depositAccountManager.name(), ServiceRunner.depositAccountManager.uri())
+            ApplicationBuilder.create(ServiceRunner.depositAccountManager.name(), ServiceRunner.depositAccountManager.uri()),
+            ApplicationBuilder.create(ServiceRunner.tellerManager.name(), ServiceRunner.tellerManager.uri())
     );
 
     final List<Tenant> tenantsToCreate = Arrays.asList(
-        TenantBuilder.create(ServiceRunner.provisionerService.getProcessEnvironment(), "playground", "A place to mess around and have fun", "playground"),
-        TenantBuilder.create(ServiceRunner.provisionerService.getProcessEnvironment(), "demo-cccu", "Demo for CCCU", "demo_cccu"),
-        TenantBuilder.create(ServiceRunner.provisionerService.getProcessEnvironment(), "SKCUKNS1", "St Kitts Cooperative Credit Union", "SKCUKNS1"),
-        TenantBuilder.create(ServiceRunner.provisionerService.getProcessEnvironment(), "PCCUKNS1", "Police Cooperative Credit Union", "PCCUKNS1"),
-        TenantBuilder.create(ServiceRunner.provisionerService.getProcessEnvironment(), "FCCUKNS1", "FND Cooperative Credit Union", "FCCUKNS1"),
-        TenantBuilder.create(ServiceRunner.provisionerService.getProcessEnvironment(), "NCCUKNN1", "Nevis Cooperative Credit Union", "NCCUKNN1")
+        TenantBuilder.create(ServiceRunner.provisionerService.getProcessEnvironment(), "playground", "A place to mess around and have fun", "playground")
+        // TenantBuilder.create(ServiceRunner.provisionerService.getProcessEnvironment(), "demo-cccu", "Demo for CCCU", "demo_cccu"),
+        // TenantBuilder.create(ServiceRunner.provisionerService.getProcessEnvironment(), "SKCUKNS1", "St Kitts Cooperative Credit Union", "SKCUKNS1"),
+        // TenantBuilder.create(ServiceRunner.provisionerService.getProcessEnvironment(), "PCCUKNS1", "Police Cooperative Credit Union", "PCCUKNS1"),
+        // TenantBuilder.create(ServiceRunner.provisionerService.getProcessEnvironment(), "FCCUKNS1", "FND Cooperative Credit Union", "FCCUKNS1"),
+        // TenantBuilder.create(ServiceRunner.provisionerService.getProcessEnvironment(), "NCCUKNN1", "Nevis Cooperative Credit Union", "NCCUKNN1")
     );
 
     try (final AutoSeshat ignored = new AutoSeshat(authenticationResponse.getToken())) {
@@ -392,7 +400,13 @@ public class ServiceRunner {
                         io.mifos.rhythm.spi.v1.PermittableGroupIds.forApplication(portfolioManager.name()), schedulerUser.getIdentifier())));
       }
 
+      provisionApp(tenant, organizationManager, io.mifos.office.api.v1.EventConstants.INITIALIZE);
+
+      provisionApp(tenant, customerManager, io.mifos.customer.api.v1.CustomerEventConstants.INITIALIZE);
+
       provisionApp(tenant, depositAccountManager, io.mifos.deposit.api.v1.EventConstants.INITIALIZE);
+
+      provisionApp(tenant, tellerManager, io.mifos.teller.api.v1.EventConstants.INITIALIZE);
 
       final UserWithPassword orgAdminUserPassword = createOrgAdminRoleAndUser(tenantAdminPassword.getAdminPassword());
 
